@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: xlwings-googlesheets-pandas-plots
+    env: docker
+    region: ohio
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: GOOGLE_ALLOWED_DOMAINS
+        sync: false
+      - key: XLWINGS_LICENSE_KEY
+        sync: false
