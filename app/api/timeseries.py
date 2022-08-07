@@ -4,7 +4,7 @@ import pandas as pd
 import xlwings as xw
 from fastapi import APIRouter, Body, Security
 
-from ..core.auth import authenticate
+from ..core.auth import User, authenticate
 
 # Require authentication for all endpoints for this router
 router = APIRouter(
@@ -34,13 +34,12 @@ async def random_walk(data: dict = Body):
     # Matplotlib plot
     plt.style.use("fivethirtyeight")
     ax = df.plot(figsize=(12, 8))
-    if "time_series" in sheet.pictures:
-        sheet.pictures["time_series"].delete()
     sheet.pictures.add(
         image=ax.get_figure(),
         name="time_series",
         anchor=sheet["E9"],
         export_options={"bbox_inches": "tight", "dpi": 80},
+        update=True,
     )
 
     return book.json()

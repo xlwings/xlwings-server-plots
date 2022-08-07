@@ -10,3 +10,5 @@ services:
         sync: false
       - key: XLWINGS_LICENSE_KEY
         sync: false
+      - key: XLWINGS_API_KEY
+        sync: false

@@ -1,10 +1,11 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
-    google_allowed_domains: List
+    xlwings_api_key: Optional[str]
+    google_allowed_domains: Optional[List]
 
     class Config:
         env_file = ".env"

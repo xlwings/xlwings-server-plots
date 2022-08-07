@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 
 import httpx
@@ -25,35 +26,43 @@ def get_google_userinfo_url():
 
 
 async def authenticate(
-    oauth_token: str = Security(APIKeyHeader(name="Authorization")),
+    token: str = Security(APIKeyHeader(name="Authorization")),
 ) -> User:
-    """Decodes `ScriptApp.getOAuthToken()` from Google Apps Script (an OAuth 2.0 access
-    token) and returns a `User` object if successful, otherwise raises 401.
-    """
-    userinfo_url = get_google_userinfo_url()
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            userinfo_url, headers={"Authorization": f"Bearer {oauth_token}"}
-        )
-    if response.status_code == 200:
-        userinfo = response.json()
-        user = User(
-            id=userinfo["sub"],
-            email=userinfo["email"],
-            email_verified=userinfo["email_verified"],
-            domain=userinfo.get("hd")
-            if userinfo.get("hd")
-            else userinfo["email"].split("@")[1],
-        )
-        if user.domain in settings.google_allowed_domains and user.email_verified:
-            return user
+    # Anonymous user
+    if settings.xlwings_api_key and settings.xlwings_api_key == token:
+        return User(id="N/A", email="N/A", email_verified=False, domain="N/A")
+    # Google User
+    elif settings.google_allowed_domains and token.startswith("ya29"):
+        # Decodes `ScriptApp.getOAuthToken()` from Apps Script (OAuth 2.0 access token)
+        userinfo_url = get_google_userinfo_url()
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                userinfo_url, headers={"Authorization": f"Bearer {token}"}
+            )
+        if response.status_code == 200:
+            userinfo = response.json()
+            user = User(
+                id=userinfo["sub"],
+                email=userinfo["email"],
+                email_verified=userinfo["email_verified"],
+                domain=userinfo.get("hd")
+                if userinfo.get("hd")
+                else userinfo["email"].split("@")[1],
+            )
+            if user.domain in settings.google_allowed_domains and user.email_verified:
+                return user
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Unauthorized",
+                )
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Unauthorized",
+                detail="Invalid OAuth Token",
             )
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid OAuth Token",
+            detail="Unauthorized",
         )
